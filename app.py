@@ -26,15 +26,19 @@ def create_sample():
     if sample_id in samples:
         return jsonify({"error": "sample_already_exists"}), 409
 
+    # Check for duplicate file IDs before creating anything
+    for file_id in file_ids:
+        if file_id in files:
+            return jsonify({"error": "file_already_exists"}), 409
+
+    # Create the sample
     samples[sample_id] = {
         "id": sample_id,
         "ownerId": owner_id,
     }
 
+    # Create files with pending QC status
     for file_id in file_ids:
-        if file_id in files:
-            continue
-
         files[file_id] = {
             "id": file_id,
             "sampleId": sample_id,
@@ -136,6 +140,12 @@ def can_download(user_id, file_id):
         return {
             "allowed": False,
             "reason": "qc_failed",
+        }
+
+    if qc_status != "passed":
+        return {
+            "allowed": False,
+            "reason": "invalid_qc_status",
         }
 
     expires_at = int(time.time()) + 300
